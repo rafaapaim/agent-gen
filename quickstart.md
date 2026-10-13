@@ -26,6 +26,34 @@ If `ollama list` fails, start Ollama first:
 ollama serve
 ```
 
+## Run the web application
+
+Install the backend dependencies from the repository root:
+
+```bash
+python -m pip install -r backend/requirements.txt
+```
+
+Keep the following servers running in two separate terminals, each opened at the repository root.
+
+### Terminal 1: Backend API
+
+```bash
+python -m uvicorn backend.src.main:app --host 127.0.0.1 --port 8000 --reload
+```
+
+The API is available at `http://127.0.0.1:8000/api`. Check backend health at `http://127.0.0.1:8000/api/health`.
+
+### Terminal 2: Frontend
+
+```bash
+python -m http.server 5173 --directory frontend
+```
+
+Open `http://localhost:5173/public/` in your browser. Serve the frontend over HTTP; do not open `frontend/public/index.html` directly from the filesystem. Ollama must be running at `http://localhost:11434` for agent listing and chat.
+
+If port 8000 is occupied, stop the process using it. If you choose a different backend port, update the API base URL in `frontend/src/api.js` to match. If port 5173 is occupied, stop the process using it or choose another static-server port and open the matching URL.
+
 ## Start the application
 
 From the repository root:

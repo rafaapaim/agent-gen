@@ -1,155 +1,200 @@
-# Ollama Agent CLI
+# Agent Manager
 
-A lightweight local terminal application for working with Ollama-based AI agents.
+Gerencie agentes locais do Ollama de forma simples, usando uma interface de terminal ou uma UI web local.
 
-## What this project does
+## Visão geral
 
-This project gives you a simple CLI workflow to:
+Este projeto permite:
 
-- list the Ollama models or agents available on your machine,
-- create a new agent from a Modelfile,
-- delete an existing agent after confirmation,
-- open a chat session with a selected model and keep a local conversation history.
+- listar modelos e agentes instalados no Ollama;
+- criar novos agentes a partir de um Modelfile;
+- remover agentes com confirmação;
+- conversar com um agente selecionado;
+- usar uma interface web leve para o mesmo fluxo de gestão.
 
-It is designed for developers and local users who want a fast, terminal-first way to interact with local models without needing a web UI or remote platform.
+O objetivo é facilitar o uso de modelos locais em um ambiente pessoal ou de desenvolvimento, sem depender de uma plataforma externa.
 
-## Why it exists
+## O que está incluído
 
-The tool reduces friction when working with locally-hosted LLMs. Instead of juggling multiple commands in separate tools, you can stay in one terminal session, manage agent instances, and chat with them directly.
+- CLI principal em `agents.py`
+- backend em FastAPI em `backend/`
+- frontend web em `frontend/`
+- testes de verificação em `tests/`
 
-This is especially useful when:
+## Requisitos
 
-- you want to keep model usage local and private,
-- you are testing custom Modelfiles for local agents,
-- you want a minimal, scriptable workflow for agent management.
+Antes de executar o projeto, confirme que:
 
-## Main features
+- Python 3.11 ou superior está instalado;
+- Ollama está instalado localmente;
+- o serviço do Ollama está rodando em `http://localhost:11434`;
+- você tem acesso a um terminal e ao navegador local.
 
-- Agent listing and selection from the local Ollama registry
-- Optional direct startup with a chosen agent name
-- Creation of custom agents using `ollama create <name> -f <modelfile>`
-- Removal of agents with explicit confirmation
-- Terminal chat with special commands for multi-line input, file context, cleanup, and saving conversations
+Se o Ollama não estiver ativo, a aplicação não conseguirá listar nem conversar com os modelos.
 
-## How it works
+## Estrutura do projeto
 
-The application is implemented in `agents.py` and uses the Ollama HTTP API at `http://localhost:11434` by default.
+```text
+agentes/
+├── agents.py                 # CLI principal
+├── README.md                # documentação do projeto
+├── quickstart.md            # guia rápido
+├── backend/
+│   └── src/
+│       ├── main.py          # aplicação FastAPI
+│       ├── api/             # rotas HTTP do backend
+│       ├── services/        # integração com Ollama
+│       └── models/          # modelos de domínio
+├── frontend/
+│   ├── public/
+│   └── src/
+├── tests/
+│   └── test_agent_management.py
+├── conversas/               # gerada em runtime para históricos salvos
+└── specs/
+```
 
-At a high level, the flow is:
+## Como usar a CLI
 
-1. Load available models from `GET /api/tags`.
-2. Present a menu or direct-agent selection.
-3. Allow the user to create, remove, or chat with a model.
-4. Send chat requests through the Ollama `/api/chat` endpoint.
-5. Save conversation history under a local `conversas/` folder when requested.
-
-The main interactive commands inside the chat loop are:
-
-- `/multi` - paste multi-line text until a line containing `FIM`
-- `/arquivo` - send the content of a file as part of the prompt
-- `/agente` - switch to another agent
-- `/limpar` - clear the current conversation history
-- `/pensar` - show or hide reasoning output from the model
-- `/salvar` - save the conversation as a Markdown file
-- `/ajuda` - show available commands
-- `/sair` - exit the chat
-
-## Requirements
-
-Before running the application, make sure the following are available:
-
-- Python 3.11 or newer
-- Ollama installed locally
-- Ollama service running and reachable at `http://localhost:11434`
-- A terminal or shell with access to the repository
-
-If Ollama is not running, the project cannot list or chat with local models.
-
-## Quick start
-
-From the project root, run:
+Na raiz do projeto, execute:
 
 ```bash
 python agents.py
 ```
 
-If you already know the model you want to use:
+Você verá um menu com os modelos disponíveis e opções para criar, remover ou conversar.
+
+Também é possível abrir um agente diretamente:
 
 ```bash
 python agents.py llama3.2
 ```
 
-You may also create a new agent by selecting the create action in the menu and pointing to a valid Modelfile.
+### Comandos internos do chat
 
-## Typical workflow
+Dentro do chat, os comandos disponíveis são:
 
-1. Start Ollama locally.
-2. Run the CLI.
-3. Choose an existing model or create a new one.
-4. Start a chat session.
-5. Use `/ajuda` to see supported interactive commands.
-6. Save or clean up conversations as needed.
+- `/multi` - enviar texto em múltiplas linhas até a linha `FIM`
+- `/arquivo` - incluir o conteúdo de um arquivo na conversa
+- `/agente` - trocar de agente
+- `/limpar` - limpar o histórico da conversa atual
+- `/pensar` - mostrar ou ocultar o raciocínio do modelo
+- `/salvar` - salvar a conversa em Markdown
+- `/ajuda` - exibir a ajuda
+- `/sair` - encerrar a sessão
 
-## Troubleshooting
+## Como usar a interface web
 
-### Ollama is not reachable
+Antes de iniciar a interface, instale as dependências do backend na raiz do projeto:
 
-The app will report that it could not connect to the Ollama service. In most cases, this means Ollama is not running.
+```bash
+python -m pip install -r backend/requirements.txt
+```
 
-Use:
+Confirme também que o Ollama está instalado e rodando em `http://localhost:11434`. A interface pode carregar sem ele, mas listar agentes e conversar com modelos depende do serviço.
+
+Mantenha os dois servidores abaixo rodando em terminais separados, ambos abertos na raiz do projeto.
+
+### 1) Backend da API — Terminal 1
+
+```bash
+python -m uvicorn backend.src.main:app --host 127.0.0.1 --port 8000 --reload
+```
+
+A API estará disponível em `http://127.0.0.1:8000/api`. Para verificar a saúde do backend, acesse `http://127.0.0.1:8000/api/health`.
+
+### 2) Frontend — Terminal 2
+
+```bash
+python -m http.server 5173 --directory frontend
+```
+
+Abra `http://localhost:5173/public/` no navegador. Não abra o arquivo HTML diretamente (`file:`); a interface deve ser servida por HTTP.
+
+Se a porta 8000 estiver ocupada, libere-a antes de iniciar o backend. Caso use outra porta para a API, atualize também a URL base em `frontend/src/api.js`. Se a porta 5173 estiver ocupada, libere-a ou escolha outra porta para o servidor estático e abra a URL correspondente.
+
+Se a interface não conseguir listar agentes, confirme que o backend está ativo e que o Ollama está rodando em `http://localhost:11434`; depois, atualize a página.
+
+A interface web se comunica com o backend em `http://127.0.0.1:8000/api` e permite:
+
+- listar agentes;
+- criar um agente a partir de um Modelfile;
+- remover um agente;
+- enviar mensagens para o modelo selecionado.
+
+## Fluxo de trabalho típico
+
+1. Inicie o Ollama localmente.
+2. Verifique os modelos disponíveis com `ollama list`.
+3. Abra a CLI ou a interface web.
+4. Escolha um agente ou crie um novo a partir de um Modelfile.
+5. Inicie a conversa.
+6. Salve, limpe ou alterne entre agentes conforme necessário.
+
+## Solução de problemas
+
+### Ollama não está acessível
+
+Verifique se o serviço está rodando:
 
 ```bash
 ollama serve
 ```
 
-or start the Ollama desktop application, then retry the CLI.
+ou inicie o aplicativo local do Ollama e tente novamente.
 
-### No models are installed
+### Nenhum modelo está instalado
 
-If the project reports that no agents are available, run:
+Execute:
 
 ```bash
 ollama list
 ```
 
-If that returns nothing, you need to pull or create a model before using the application.
+Se a lista estiver vazia, instale ou crie um modelo antes de iniciar a conversa.
 
-### Modelfile path is invalid
+### Modelfile inválido
 
-When creating an agent, the path must point to an existing file. Verify that:
+Ao criar um agente, confirme que:
 
-- the file exists,
-- the path is correct,
-- the file is readable,
-- the file is a valid Modelfile.
+- o caminho do arquivo está correto;
+- o arquivo existe;
+- o arquivo é legível;
+- o conteúdo é um Modelfile válido para o Ollama.
 
-### Conversation or agent actions fail
+### Erro ao conversar ou gerenciar agentes
 
-Check the error returned by the command output and confirm that:
+Confirme que:
 
-- the model name is valid,
-- the Ollama service is running,
-- the model is installed and available,
-- there are no permission problems on the local filesystem.
+- o nome do agente está correto;
+- o serviço do Ollama está ativo;
+- o modelo está instalado e disponível;
+- não há problemas de permissão no sistema de arquivos local.
 
-## Project structure
+## Testes
 
-- `agents.py` - main terminal application
-- `tests/test_agent_management.py` - unit tests covering agent selection and command behavior
-- `specs/002-documentacao-aplicacao/` - feature planning and documentation artifacts
-- `conversas/` - local directory created at runtime for saved conversation logs
+Os testes automatizados cobrem o comportamento principal de gerenciamento de agentes:
 
-## Maintenance notes
+```bash
+pytest
+```
 
-This project is intentionally small and focused. The main responsibilities live in a single script, while tests validate the main user flows such as model selection, agent creation, and command execution safety.
+## Observações de manutenção
 
-When updating the project, keep the documentation aligned with the actual CLI behavior. Particularly review:
+Este projeto foi pensado para ser simples e local. A parte principal da lógica está concentrada em:
 
-- model selection flow,
-- creation/deletion procedures,
-- command behavior and outputs,
-- local runtime dependencies like Ollama.
+- `agents.py` para terminal;
+- `backend/src/services/ollama_service.py` para integração com o Ollama;
+- `frontend/src/app.js` para a interface web.
 
-## License
+Ao atualizar a aplicação, mantenha a documentação alinhada com a experiência real do usuário, especialmente em relação a:
 
-This repository does not currently declare a project license in the root directory. If you plan to share or distribute the project more broadly, add an explicit license file before publication.
+- criação de agentes;
+- remoção de agentes;
+- uso de modelos locais;
+- integração com Ollama;
+- fluxo de chat e comandos interativos.
+
+## Licença
+
+Este repositório ainda não declara uma licença no diretório raiz. Se você pretende compartilhar ou distribuir o projeto publicamente, é recomendável adicionar um arquivo de licença explícito antes da publicação.
