@@ -3,6 +3,8 @@
 # Ambiente virtual
 .venv/
 venv/
+dist/
+*.egg-info/
 
 # Cache do Python
 __pycache__/
